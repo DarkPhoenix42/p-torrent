@@ -5,6 +5,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/DarkPhoenix42/p-torrent/pkg/bencode"
 	"github.com/rs/zerolog"
 	"gopkg.in/yaml.v3"
 )
@@ -12,7 +13,6 @@ import (
 type Config struct {
 	LogLevel string `yaml:"log_level"`
 	LogFile  string `yaml:"log_file"`
-	Port     int    `yaml:"port"`
 	MaxPeers int    `yaml:"max_peers"`
 }
 
@@ -21,11 +21,13 @@ func loadConfig(filename string) (*Config, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	var config Config
 	err = yaml.Unmarshal(data, &config)
 	if err != nil {
 		return nil, err
 	}
+
 	return &config, nil
 }
 
@@ -49,4 +51,22 @@ func main() {
 	).Level(log_level).With().Timestamp().Caller().Logger()
 
 	logger.Info().Msg("Initialized logger!")
+
+	torrent_filename := os.Args[1]
+	torrent_data, err := os.ReadFile(torrent_filename)
+	if err != nil {
+		logger.Error().Msg("Failed to read torrent file!")
+		return
+	}
+
+	logger.Info().Msg("Read torrent file!")
+
+	torrent_info, err := bencode.UnMarshal(&torrent_data)
+	if err != nil {
+		logger.Error().Msg("Failed to unmarshal torrent file!")
+		return
+	}
+
+	logger.Info().Msg("Successfully Unmarshalled torrent file!")
+	fmt.Printf("%+v", torrent_info)
 }
