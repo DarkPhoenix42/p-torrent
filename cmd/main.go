@@ -5,7 +5,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/DarkPhoenix42/p-torrent/pkg/bencode"
+	"github.com/DarkPhoenix42/p-torrent/pkg/torrent"
 	"github.com/rs/zerolog"
 	"gopkg.in/yaml.v3"
 )
@@ -32,7 +32,7 @@ func loadConfig(filename string) (*Config, error) {
 }
 
 func main() {
-	config, err := loadConfig("config.yaml")
+	config, err := loadConfig("../config.yaml")
 
 	if err != nil {
 		fmt.Println("Config file not found!")
@@ -52,23 +52,11 @@ func main() {
 
 	logger.Info().Msg("Initialized logger!")
 
-	torrent_filename := os.Args[1]
-	torrent_data, err := os.ReadFile(torrent_filename)
+	file_name := os.Args[1]
+	_, err = torrent.NewTorrent(file_name)
 	if err != nil {
-		logger.Error().Msg("Failed to read torrent file!")
-		return
+		logger.Error().Msg("Failed to create a torrent!")
 	}
 
-	logger.Info().Msg("Read torrent file!")
-
-	torrent_info, err := bencode.UnMarshal(torrent_data)
-	if err != nil {
-		logger.Error().Msg("Failed to unmarshal torrent file!")
-		return
-	}
-
-	logger.Info().Msg("Successfully Unmarshalled torrent file!")
-
-	fmt.Printf("%+v\n", torrent_info)
-
+	logger.Info().Msg("Successful!")
 }
