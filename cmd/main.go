@@ -61,12 +61,14 @@ func main() {
 
 	logger.Info().Msg("Read torrent file!")
 
-	torrent_info, err := bencode.UnMarshal(&torrent_data)
+	torrent_info, err := bencode.UnMarshal(torrent_data)
 	if err != nil {
 		logger.Error().Msg("Failed to unmarshal torrent file!")
 		return
 	}
 
 	logger.Info().Msg("Successfully Unmarshalled torrent file!")
-	fmt.Printf("%+v", torrent_info)
+
+	fmt.Printf("%+v\n", torrent_info)
+
 }

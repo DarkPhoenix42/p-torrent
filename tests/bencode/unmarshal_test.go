@@ -55,7 +55,7 @@ func TestUnMarshal(t *testing.T) {
 	for _, tt := range unMarshalTests {
 		t.Run("", func(t *testing.T) {
 			var test_case []byte = []byte(tt.in)
-			out, err := bencode.UnMarshal(&test_case)
+			out, err := bencode.UnMarshal(test_case)
 			if err != nil {
 				t.Errorf("UnMarshal(%v) got error: %v", tt.in, err)
 			}
@@ -70,7 +70,7 @@ func BenchmarkUnMarshal(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		for _, tt := range unMarshalTests {
 			var test_case []byte = []byte(tt.in)
-			_, _ = bencode.UnMarshal(&test_case)
+			_, _ = bencode.UnMarshal(test_case)
 		}
 	}
 }

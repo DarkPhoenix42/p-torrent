@@ -17,9 +17,6 @@ func Marshal(v any) ([]byte, error) {
 	case string:
 		marshalString(value, &buf)
 
-	case []byte:
-		marshalString(string(value[:]), &buf)
-
 	case []any:
 		marshalList(value, &buf)
 

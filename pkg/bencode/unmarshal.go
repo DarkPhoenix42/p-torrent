@@ -6,94 +6,109 @@ import (
 	"strconv"
 )
 
-func UnMarshal(data *[]byte) (any, error) {
-	switch (*data)[0] {
-	case 'i':
-		return unmarshalInt(data)
-
-	case 'l':
-		return unmarshalList(data)
-
-	case 'd':
-		return unmarshalDict(data)
-
-	case 'e':
-		return nil, nil
-
-	default:
-		return unmarshalString(data)
-	}
-}
-
-func unmarshalInt(data *[]byte) (any, error) {
-	end_idx := bytes.IndexByte(*data, 'e')
-	if end_idx == -1 {
+func UnMarshal(data []byte) (any, error) {
+	if len(data) == 0 {
 		return nil, fmt.Errorf("invalid bencode data")
 	}
 
-	int_data := (*data)[1:end_idx]
+	val, _, err := unmarshal(data, 0)
+	if err != nil {
+		return nil, err
+	}
+
+	return val, nil
+}
+
+func unmarshal(data []byte, offset int) (any, int, error) {
+	switch data[offset] {
+	case 'i':
+		return unmarshalInt(data, offset)
+	case 'l':
+		return unmarshalList(data, offset)
+
+	case 'd':
+		return unmarshalDict(data, offset)
+
+	case 'e':
+		return nil, 0, nil
+
+	default:
+		return unmarshalString(data, offset)
+	}
+}
+
+func unmarshalInt(data []byte, offset int) (any, int, error) {
+	end_idx := bytes.IndexByte(data[offset:], 'e')
+	if end_idx == -1 {
+		return nil, 0, fmt.Errorf("invalid bencode data")
+	}
+
+	int_data := data[offset+1 : offset+end_idx]
 	int_val, err := strconv.Atoi(string(int_data))
 	if err != nil {
-		return nil, fmt.Errorf("invalid value for int")
+		return nil, 0, fmt.Errorf("invalid value for int")
 	}
 
-	*data = (*data)[end_idx+1:]
-	return int_val, nil
+	offset += end_idx + 1
+	return int_val, offset, nil
 }
 
-func unmarshalList(data *[]byte) ([]any, error) {
+func unmarshalList(data []byte, offset int) ([]any, int, error) {
 	list := []any{}
+	offset += 1
 
-	*data = (*data)[1:]
-	for (*data)[0] != 'e' {
-		val, err := UnMarshal(data)
+	for data[offset] != 'e' {
+		val, new_offset, err := unmarshal(data, offset)
 		if err != nil {
-			return nil, err
+			return nil, 0, err
 		}
 
+		offset = new_offset
 		list = append(list, val)
 	}
-
-	*data = (*data)[1:]
-	return list, nil
+	offset += 1
+	return list, offset, nil
 }
 
-func unmarshalDict(data *[]byte) (map[string]any, error) {
+func unmarshalDict(data []byte, offset int) (map[string]any, int, error) {
 	dict := map[string]any{}
+	offset += 1
+	
+	for data[offset] != 'e' {
+		key, new_offset, err := unmarshalString(data, offset)
+		if err != nil {
+			return nil, 0, err
+		}
 
-	*data = (*data)[1:]
-	for (*data)[0] != 'e' {
-		key, err := unmarshalString(data)
 		key_str := string(key)
+		offset = new_offset
+
+		val, new_offset, err := unmarshal(data, offset)
 		if err != nil {
-			return nil, err
+			return nil, 0, err
 		}
 
-		val, err := UnMarshal(data)
-		if err != nil {
-			return nil, err
-		}
-
+		offset = new_offset
 		dict[key_str] = val
 	}
 
-	*data = (*data)[1:]
-	return dict, nil
+	offset += 1
+	return dict, offset, nil
 }
 
-func unmarshalString(data *[]byte) (string, error) {
-	colon_idx := bytes.IndexByte(*data, ':')
+func unmarshalString(data []byte, offset int) (string, int, error) {
+	colon_idx := bytes.IndexByte(data[offset:], ':')
 	if colon_idx == -1 {
-		return "", fmt.Errorf("invalid bencode data")
+		return "", 0, fmt.Errorf("invalid bencode data")
 	}
 
-	str_len_data := (*data)[:colon_idx]
+	str_len_data := data[offset : offset+colon_idx]
 	str_len, err := strconv.Atoi(string(str_len_data))
 	if err != nil {
-		return "", fmt.Errorf("invalid value for string length")
+		return "", 0, fmt.Errorf("invalid value for string length")
 	}
+	str_data := data[offset+colon_idx+1 : offset+colon_idx+str_len+1]
 
-	str_data := (*data)[colon_idx+1 : colon_idx+1+str_len]
-	*data = (*data)[colon_idx+1+str_len:]
-	return string(str_data), nil
+	offset += colon_idx + str_len + 1
+	return string(str_data), offset, nil
 }
