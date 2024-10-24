@@ -141,3 +141,15 @@ func (torrent *Torrent) updateInfoHash() error {
 	torrent.InfoHash = sha1.Sum(info_bencoded)
 	return nil
 }
+
+func (torrent *Torrent) GetLength() int {
+	if len(torrent.Info.Files) > 0 {
+		length := 0
+		for _, file := range torrent.Info.Files {
+			length += file.Length
+		}
+		return length
+	}
+
+	return torrent.Info.Length
+}

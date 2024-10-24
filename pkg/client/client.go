@@ -8,9 +8,11 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
+	"sync"
 	"time"
 
 	"github.com/DarkPhoenix42/p-torrent/pkg/bencode"
+	"github.com/DarkPhoenix42/p-torrent/pkg/peer"
 	"github.com/DarkPhoenix42/p-torrent/pkg/torrent"
 	"github.com/rs/zerolog"
 )
@@ -19,17 +21,24 @@ type Client struct {
 	Torrent         *torrent.Torrent
 	PeerID          [20]byte
 	Tracker         string
+	Downloaded      int
+	DownloadBuffer  []byte
+	Left            int
 	TrackerInterval time.Duration
-	Peers           []net.Addr
+	PeerLock        sync.RWMutex
+	Peers           []peer.Peer
 	Logger          *zerolog.Logger
 }
 
 func NewClient(t *torrent.Torrent, logger *zerolog.Logger) *Client {
 	client := Client{
-		Torrent: t,
-		PeerID:  [20]byte{},
-		Peers:   make([]net.Addr, 0),
-		Logger:  logger,
+		Torrent:        t,
+		PeerID:         [20]byte{},
+		Peers:          make([]peer.Peer, 0),
+		Downloaded:     0,
+		DownloadBuffer: make([]byte, 0),
+		Left:           t.GetLength(),
+		Logger:         logger,
 	}
 
 	_, err := rand.Read(client.PeerID[:])
@@ -52,9 +61,9 @@ func (client *Client) buildTrackerAnnounceURL() (string, error) {
 		"peer_id":    {string(client.PeerID[:])},
 		"port":       {"6881"},
 		"uploaded":   {"0"},
-		"downloaded": {"0"},
+		"downloaded": {strconv.Itoa(client.Downloaded)},
 		"compact":    {"1"},
-		"left":       {strconv.Itoa(client.Torrent.Info.Length)},
+		"left":       {strconv.Itoa(client.Left)},
 		"event":      {"started"},
 	}
 
@@ -82,9 +91,12 @@ func (client *Client) UpdatePeers() error {
 	}
 
 	client.TrackerInterval = interval
-	client.Peers = peers
 
-	client.Logger.Info().Msg("Peers updated successfully!")
+	for _, p := range peers {
+		client.Peers = append(client.Peers, peer.NewPeer(p))
+	}
+
+	client.Logger.Info().Msgf("%d peers acquired!", len(client.Peers))
 	return nil
 }
 
@@ -113,4 +125,10 @@ func parseTrackerResponse(resp_body io.Reader) (time.Duration, []net.Addr, error
 	}
 
 	return time.Duration(interval), peers_list, nil
+}
+
+func (client *Client) ConnectToPeers() {
+	for _, p := range client.Peers {
+		go p.Activate(client.Torrent.InfoHash[:], client.PeerID[:])
+	}
 }
