@@ -6,6 +6,8 @@ import (
 	"strconv"
 )
 
+// TODO: Add support for arbitrary structs
+
 func UnMarshal(data []byte) (any, error) {
 	if len(data) == 0 {
 		return nil, fmt.Errorf("invalid bencode data")
@@ -73,7 +75,7 @@ func unmarshalList(data []byte, offset int) ([]any, int, error) {
 func unmarshalDict(data []byte, offset int) (map[string]any, int, error) {
 	dict := map[string]any{}
 	offset += 1
-	
+
 	for data[offset] != 'e' {
 		key, new_offset, err := unmarshalString(data, offset)
 		if err != nil {

@@ -5,6 +5,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/DarkPhoenix42/p-torrent/pkg/client"
 	"github.com/DarkPhoenix42/p-torrent/pkg/torrent"
 	"github.com/rs/zerolog"
 	"gopkg.in/yaml.v3"
@@ -12,7 +13,6 @@ import (
 
 type Config struct {
 	LogLevel string `yaml:"log_level"`
-	LogFile  string `yaml:"log_file"`
 	MaxPeers int    `yaml:"max_peers"`
 }
 
@@ -42,7 +42,6 @@ func main() {
 	log_level, err := zerolog.ParseLevel(config.LogLevel)
 
 	if err != nil {
-		fmt.Println("Failed to parse log level! Defaulting to INFO level.")
 		log_level = zerolog.InfoLevel
 	}
 
@@ -50,13 +49,18 @@ func main() {
 		zerolog.ConsoleWriter{Out: os.Stderr, TimeFormat: time.DateTime},
 	).Level(log_level).With().Timestamp().Caller().Logger()
 
-	logger.Info().Msg("Initialized logger!")
-
 	file_name := os.Args[1]
-	_, err = torrent.NewTorrent(file_name)
+	torrent_file, err := torrent.NewTorrent(file_name)
+
 	if err != nil {
-		logger.Error().Msg("Failed to create a torrent!")
+		logger.Error().Msgf("Failed to create a torrent: %s", err)
 	}
 
-	logger.Info().Msg("Successful!")
+	torrent_client := client.NewClient(torrent_file, &logger)
+	err = torrent_client.UpdatePeers()
+
+	if err != nil {
+		logger.Error().Msgf("Failed to update peers: %s", err)
+	}
+
 }

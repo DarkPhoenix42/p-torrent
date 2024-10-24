@@ -10,7 +10,7 @@
             "request": "launch",
             "mode": "auto",
             "program": "${fileDirname}",
-            "args": ["../tests/ubuntu-21.04-desktop-amd64.iso.torrent"]
+            "args": ["../torrentfiles/debian-12.7.0-amd64-netinst.iso.torrent"]
         }
     ]
 }

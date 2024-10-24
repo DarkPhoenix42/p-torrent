@@ -7,6 +7,8 @@ import (
 	"strconv"
 )
 
+// TODO: Add support for arbitrary structs
+
 func Marshal(v any) ([]byte, error) {
 	var buf bytes.Buffer
 	switch value := v.(type) {
@@ -16,6 +18,9 @@ func Marshal(v any) ([]byte, error) {
 
 	case string:
 		marshalString(value, &buf)
+
+	case []byte:
+		marshalString(string(value), &buf)
 
 	case []any:
 		marshalList(value, &buf)
@@ -47,7 +52,7 @@ func marshalList(v []any, buf *bytes.Buffer) {
 	for _, e := range v {
 		b, err := Marshal(e)
 		if err != nil {
-			return
+			panic(err)
 		}
 		buf.Write(b)
 	}
@@ -58,7 +63,6 @@ func marshalList(v []any, buf *bytes.Buffer) {
 func marshalDict(v map[string]any, buf *bytes.Buffer) {
 	buf.WriteRune('d')
 
-	// Sort keys
 	keys := make([]string, 0, len(v))
 	for k := range v {
 		keys = append(keys, k)
@@ -69,7 +73,7 @@ func marshalDict(v map[string]any, buf *bytes.Buffer) {
 		marshalString(k, buf)
 		b, err := Marshal(v[k])
 		if err != nil {
-			return
+			panic(err)
 		}
 		buf.Write(b)
 	}
