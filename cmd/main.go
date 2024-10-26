@@ -54,16 +54,9 @@ func main() {
 
 	if err != nil {
 		logger.Error().Msgf("Failed to create a torrent with error: %s", err)
+		return
 	}
 
 	torrent_client := client.NewClient(torrent_file, &logger)
-	err = torrent_client.UpdatePeers()
-
-	if err != nil {
-		logger.Error().Msgf("Failed to update peers: %s", err)
-	}
-
-	torrent_client.ConnectToPeers()
-
-	time.Sleep(600 * time.Second)
+	torrent_client.StartDownload()
 }
